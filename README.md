@@ -5,3 +5,4 @@ Raw data are taken from the `raw data` read-only folder and put to the read-and-
 The list of scripts is:
 
 * `boundaries.Rmd`: process the administrative polygons of Vietnam
+* `census.Rmd`: process the 2019 Vietnamese censes

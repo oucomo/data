@@ -1,0 +1,136 @@
+---
+title: "2019 Vietnamese census"
+output:
+  html_document:
+    theme: cerulean
+    toc: yes
+  pdf_document:
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{css, echo=FALSE}
+pre, code {white-space:pre !important; overflow-x:auto}
+```
+
+```{r general options, include = FALSE}
+knitr::knit_hooks$set(
+  margin = function(before, options, envir) {
+    if (before) par(mgp = c(1.5, .5, 0), bty = "n", plt = c(.105, .97, .13, .97))
+    else NULL
+  },
+  prompt = function(before, options, envir) {
+    options(prompt = if (options$engine %in% c("sh", "bash")) "$ " else "> ")
+  })
+
+knitr::opts_chunk$set(margin = TRUE, message = FALSE, warning = FALSE,
+                      prompt = FALSE, comment = "##", collapse = FALSE,
+                      cache = FALSE, autodep = TRUE,
+                      dev.args = list(pointsize = 11), fig.height = 3.5,
+                      fig.width = 4.24725, fig.retina = 2, fig.align = "center")
+
+options(width = 263)
+
+l <- "en_US.UTF-8"
+Sys.setenv(LANGAGE = l)
+Sys.setlocale(locale = l)
+Sys.setlocale("LC_MESSAGES", l)
+```
+
+```{r}
+library(tidyr)
+library(dplyr)
+```
+
+
+```{r}
+census <- readxl::read_excel("../raw data/Danso_Xaphuong_Gioitinh_Tuoi_QuyII_2019.xlsx", 2) %>% 
+  select(-Tổng) %>% 
+  pivot_longer(ends_with(c("tuổi", "+"))) %>% 
+  setNames(c("province", "district", "commune", "ethny", "sex", "age", "n")) %>% 
+  mutate(sex = recode(sex, Nam = "male", Nữ = "female")) %>% 
+  filter(! (is.na(province) & is.na(district) & is.na(commune)))
+```
+
+Make a hash table to recode ages:
+
+```{r}
+age_val <- unique(census$age)
+x <- seq_along(age_val)
+y <- x - 1
+x <- c(x[-length(x)], "Inf")
+hash_table <- setNames(paste0("[", paste(y, x, sep = ", "), ")"), age_val)
+```
+
+Use this table to recode the ages, and change type at the same time:
+
+```{r}
+census %<>%
+  mutate(age = hash_table[age]) %>% 
+  mutate(age = factor(as.character(age), hash_table)) %>% 
+  mutate_if(is.character, as.factor) %>% 
+  mutate_if(is.numeric, as.integer)
+```
+
+Checking:
+
+```{r}
+census %>% 
+  filter(is.na(province) | is.na(district) | is.na(commune) | is.na(ethny) | is.na(sex) | is.na(age) | is.na(n))
+```
+
+How many communes?
+
+```{r}
+census %>% 
+  select(province, district, commune) %>% 
+  distinct() %>% 
+  nrow()
+```
+
+Total population size:
+
+```{r}
+sum(census$n)
+```
+
+Sex ratio:
+
+```{r}
+census %>% 
+  group_by(sex) %>% 
+  summarise(n = sum(n))
+```
+
+Ethnies:
+
+```{r}
+census %>% 
+  group_by(ethny) %>% 
+  summarise(n = sum(n)) %>% 
+  arrange(desc(n))
+```
+
+Age distributions:
+
+```{r}
+plot(c(0, 100), c(0, 100), type = "n", axes = FALSE, ann = FALSE)
+census %>% 
+  group_by(age, sex) %>% 
+  summarise(n = sum(n)) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = sex, values_from = n) %>% 
+  arrange(age) %>% 
+  select(male, female, age) %>% 
+  mutate(age = as.integer(age) - 1) %>% 
+  as.data.frame() %>% 
+  pyramid::pyramidf(frame=c(5, 95, 0, 100), Clab="", Lcol="skyblue", Rcol="pink",
+                    Cstep=10, Laxis = 0:3*400000)
+```
+
+Writing to disk:
+
+```{r}
+#write.csv2(census, "oucru/census2019.csv", quote = FALSE, row.names = FALSE)
+```
