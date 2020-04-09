@@ -129,8 +129,9 @@ census %>%
                     Cstep=10, Laxis = 0:3*400000)
 ```
 
-Writing to disk:
+Writing clean data to disk, both in CVS and RDS formats:
 
-```{r}
-#write.csv2(census, "oucru/census2019.csv", quote = FALSE, row.names = FALSE)
+```{r eval = FALSE}
+write.csv2(census, "../clean data/census2019.csv", quote = FALSE, row.names = FALSE)
+saveRDS(census, "../clean data/census2019.csv")
 ```
