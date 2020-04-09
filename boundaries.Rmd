@@ -1,0 +1,141 @@
+---
+title: "Administrative boundaries"
+output:
+  html_document:
+    theme: cerulean
+    toc: yes
+  pdf_document:
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{css, echo=FALSE}
+pre, code {white-space:pre !important; overflow-x:auto}
+```
+
+```{r general options, include = FALSE}
+knitr::knit_hooks$set(
+  margin = function(before, options, envir) {
+    if (before) par(mgp = c(1.5, .5, 0), bty = "n", plt = c(.105, .97, .13, .97))
+    else NULL
+  },
+  prompt = function(before, options, envir) {
+    options(prompt = if (options$engine %in% c("sh", "bash")) "$ " else "> ")
+  })
+
+knitr::opts_chunk$set(margin = TRUE, message = FALSE, warning = FALSE,
+                      prompt = FALSE, comment = "##", collapse = FALSE,
+                      cache = FALSE, autodep = TRUE,
+                      dev.args = list(pointsize = 11), fig.height = 3.5,
+                      fig.width = 4.24725, fig.retina = 2, fig.align = "center")
+
+options(width = 263)
+
+l <- "en_US.UTF-8"
+Sys.setenv(LANGAGE = l)
+Sys.setlocale(locale = l)
+Sys.setlocale("LC_MESSAGES", l)
+```
+
+One source of administrative boundaries is [GADM](https://gadm.org). You can
+visit the website and download manually the data by country, administrative
+level, and format. Two R format are available: `sp` and `sf`. Let's downlaod
+all the administrative levels for Vietnam, in `sf` format, and put them into
+the `raw data` folder:
+
+```{r eval = FALSE}
+download.file("https://biogeo.ucdavis.edu/data/gadm3.6/Rsf/gadm36_VNM_0_sf.rds",
+              "../raw data/gadm36_VNM_0_sf.rds")
+download.file("https://biogeo.ucdavis.edu/data/gadm3.6/Rsf/gadm36_VNM_1_sf.rds",
+              "../raw data/gadm36_VNM_1_sf.rds")
+download.file("https://biogeo.ucdavis.edu/data/gadm3.6/Rsf/gadm36_VNM_2_sf.rds",
+              "../raw data/gadm36_VNM_2_sf.rds")
+download.file("https://biogeo.ucdavis.edu/data/gadm3.6/Rsf/gadm36_VNM_3_sf.rds",
+              "../raw data/gadm36_VNM_3_sf.rds")
+```
+
+Let's have a look:
+
+```{r}
+library(sf)
+library(stringr)
+library(dplyr) # safer to load last
+```
+
+```{r}
+gadm0 <- readRDS("../raw data/gadm36_VNM_0_sf.rds")
+gadm1 <- readRDS("../raw data/gadm36_VNM_1_sf.rds")
+gadm2 <- readRDS("../raw data/gadm36_VNM_2_sf.rds")
+gadm3 <- readRDS("../raw data/gadm36_VNM_3_sf.rds")
+```
+
+They are basically S3 data frames:
+
+```{r}
+gadm3
+```
+
+of which the geometry can be extracted and plotted independently of any
+associated variable values:
+
+```{r}
+plot(st_geometry(gadm1))
+```
+
+Let's now clean and tune a bit these data. Cleaning first:
+
+```{r}
+gadm1 %<>% 
+  select(-NAME_0, -GID_0, -NL_NAME_1, -CC_1) %>% 
+  tibble::remove_rownames() %>% 
+  mutate_if(is.character, ~ str_trim(.) %>% str_squish())
+```
+
+```{r}
+gadm2 %<>% 
+  select(-NAME_0, -GID_0, -starts_with("NL"), -CC_2) %>% 
+  tibble::remove_rownames() %>% 
+  mutate_if(is.character, ~ str_trim(.) %>% str_squish())
+```
+
+```{r}
+gadm3 %<>%
+  select(-NAME_0, -GID_0, -starts_with("NL"), -CC_3, -HASC_3) %>% 
+  tibble::remove_rownames() %>% 
+  mutate_if(is.character, ~ str_trim(.) %>% str_squish())
+```
+
+What I want to do now is to add the English names as well as the types, in
+Vietnamese and English, of the levels 1 and 2 to `gadm2` and `gadm3` when
+missing. Let's first add the English names of provinces as well as the level 1
+types, in Vietnamese and English, to `gadm2`:
+
+```{r}
+gadm2 <- gadm1 %>% 
+  as.data.frame() %>% 
+  select(GID_1, VARNAME_1, TYPE_1, ENGTYPE_1) %>% 
+  left_join(gadm2, ., "GID_1") %>% 
+  select(GID_1, NAME_1, VARNAME_1, TYPE_1, ENGTYPE_1, GID_2, NAME_2, VARNAME_2, TYPE_2, ENGTYPE_2, HASC_2)
+```
+
+```{r}
+gadm3 <- gadm2 %>% 
+  as.data.frame() %>% 
+  select(-GID_1, -NAME_1, -NAME_2, -geometry) %>%
+  left_join(gadm3, ., "GID_2") %>% 
+  select(GID_1, NAME_1, VARNAME_1, TYPE_1, ENGTYPE_1, GID_2, NAME_2, VARNAME_2,
+         TYPE_2, ENGTYPE_2, HASC_2, GID_3, NAME_3, VARNAME_3, TYPE_3, ENGTYPE_3)
+```
+
+And let's now put these cleaned and tuned data to the `cleaned data` folder:
+
+```{r eval = FALSE}
+saveRDS(gadm0, "../clean data/gadm0.rds")
+saveRDS(gadm1, "../clean data/gadm1.rds")
+saveRDS(gadm2, "../clean data/gadm2.rds")
+saveRDS(gadm3, "../clean data/gadm3.rds")
+```
+
+
+
