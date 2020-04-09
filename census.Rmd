@@ -133,5 +133,5 @@ Writing clean data to disk, both in CVS and RDS formats:
 
 ```{r eval = FALSE}
 write.csv2(census, "../clean data/census2019.csv", quote = FALSE, row.names = FALSE)
-saveRDS(census, "../clean data/census2019.csv")
+saveRDS(census, "../clean data/census2019.rds")
 ```
