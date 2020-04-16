@@ -215,8 +215,9 @@ lines(density(ncov_vn3, kernel = "cosine"))
 lines(density(ncov_vn3, kernel = "optcosine"))
 
 p <- fitdistrplus::fitdist(ncov_vn3, dnorm)
+confint(p)
 xs <- seq(-15, 25, le = 512)
-lines(xs, dnorm(xs, p["mean"], p["sd"]), col = "blue", lwd = 2)
+lines(xs, dnorm(xs, p$estimate["mean"], p$estimate["sd"]), col = "blue", lwd = 2)
 
 abline(v = 0, col = "red", lwd = 2)
 ```
