@@ -1,0 +1,213 @@
+---
+title: "COVID-19 VN clean data"
+author: "Duc Du, Marc Choisy and Ronald Geskus"
+date: "13/04/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache=TRUE,
+                      tidy.opts=list(width.cutoff=60),
+                      tidy=TRUE)
+install.packages(c("knitr", "rmarkdown", "markdown", "readxl", "tidyr", "dplyr", "reshape", "tidyverse", "magrittr", "lubridate", "tibble", "ggplot2", "ggthemes", "hrbrthemes", "rvest", "gt", "deSolve", "EpiEstim", "incidence", "distcrete", "epitrix", "projections"))
+
+library(knitr)
+library(rmarkdown)
+library(markdown)
+library(readxl)
+library(tidyr)
+library(dplyr)
+library(reshape)
+library(tidyverse)
+library(magrittr)
+library(lubridate)
+library(tibble)
+library(ggplot2)
+library(ggthemes)
+library(hrbrthemes)
+library(rvest)
+library(gt)
+library(deSolve)
+library(EpiEstim)
+library(incidence)
+library(distcrete)
+library(epitrix)
+library(projections)
+
+###Data cleaning
+
+```{r}
+web.file <- "https://www.dropbox.com/sh/d5lqn35f7ln4haj/AADURohgPHST1RodDDavrNIoa?dl=0&preview=Pos+COVID-19+251+update.xlsx"
+tmp      <- tempfile(fileext=".xlsx")
+download.file(web.file,destfile=tmp, mode="wb")
+xl       <-  read_excel(tmp, sheet = "Database")
+
+setwd("D:/Documents/OUCRU/COVID-19")
+ncov_vn <- read_excel("./Pos COVID-19 251 update.xlsx", sheet = "Database") %>%
+  select(-address, -"Age group", "Name of hospital" , "Name of quaratine place") %>% 
+  rename(c("Patients number" = "PatientID", 
+           "Found location"="Location",
+           "Origine of infection"="Origine",
+           "outbreak area"="Area", 
+           "Country of infection"="Country",
+           "Flight number"="Flight",
+           "Code of contact"="Codecontact",
+           "relation with target contact"="relation",
+           "kind of contact"="Kindcontact",
+           "Last contact"="Lastcontact",
+           "date of admision"="DoA",
+           "Name of hospital"="Hospital",
+           "Kind of Quarantine"="Kindquarantine",
+           "Date of Quarantine statted"="DoQ",
+           "Name of quarantine place"="Qplace",
+           "Date onset"="Dateon",
+           "date of first sample"="Date1",
+           "date of second sample"="Date2",
+           "1st result"="result1",
+           "Result 02"="result2",
+           "date of 03rd sample"="Date3",
+           "Result 03"="result3",
+           "date of 04th sample"="Date4",
+           "Result 04"="result4",
+           "date of 05th sample"="Date5",
+           "Result 05"="result5",
+           "date of 06th sample"="Date6",
+           "Result 06"="result6",
+           "date of 07th sample"="Date7",
+           "Result 07"="result7",
+           "date of 08th sample"="Date8",
+           "Result 08"="result8",
+           "date of 09th sample"="Date9",
+           "Result 09"="result9",
+           "date of 1oth sample"="Date10",
+           "Result 10"="result10",
+           "Severe 1"="severe1",
+           "Date of severe 1"="Datesev1",
+           "Date of severe increase"="Datesev_inc",
+           "Date of lethal severe"="Datelet_sev",
+           "Date of impropve"="Date_imp",
+           "date of discharge"="DoD")) %>%  
+    mutate(Gender = recode(Gender, "Nam" = "Male", "Nữ" = "Female"),
+         Clasification = recode(Clasification, "Ca xác định" = "Confirmed"),
+         Dateon = recode(Dateon, "Khởi phát trước khi bay" = "3/18/2020"),
+         Location = recode(Location, "Khu cách ly tập trung" = "Quarantine area",
+                           "Khu cách ly tập trung HN" = "Quarantine area",
+                           "Khu cách ly tập trung quận 8, TPHCM" = "Quarantine area",
+                           "Khu cách ly tập trung TPHCM" = "Quarantine area",
+                           "Khu cách ly tập trung quận 12, TPHCM" = "Quarantine area",
+                           "Khu cách ly đại học FPT, Thạch Thất" = "Quarantine area"),
+         Occupation = recode(Occupation, "Lễ tân khách sạn" = "Hotel receptionist",
+                             "Công nhân" = "Worker",
+                             "Học sinh" = "Student",
+                             "Tự do" = "Freelancer",
+                             "Trẻ em" = "Children",
+                             "Nhân viên" = "Staff",
+                             "Du học sinh" = "Overseas student",
+                             "Lái xe" = "Driver",
+                             "Giúp việc" = "Housekeeper",
+                             "Cán bộ nhà nước" = "Government officer",
+                             "Khách du lịch" = "Tourist",
+                             "Doanh nhân" = "Businessman",
+                             "Hướng dẫn viên" = "Tour guide",
+                             "Tiếp viên hàng không" = "Flight attendant",
+                             "Nhân viên ngoại giao" = "Diplomatic staff",
+                             "Điều dưỡng" = "Nurse",
+                             "Phi công" = "Pilot",
+                             "Giáo viên Ngoại ngữ" = "Foreign language teacher",
+                             "Nhân viên thiết kế đồ họa" = "Graphic designer",
+                             "Giảng viên đại học" = "Lecturer",
+                             "Bác sĩ" = "Doctor",
+                             "Nhân viên văn phòng" = "Officer",
+                             "Chuyên gia" = "Expert",
+                             "Giáo viên" = "Teacher",
+                             "Nhân viên phục vụ bàn" = "Waitor",
+                             "Người bệnh Bạch Mai" = "Bach Mai patient",
+                             "Nhân viên quán ăn" = "Restaurant staff", 
+                             "Lao động tự do tại Đức" = "Freelancer",
+                             "Nhân viên quán Bar Buddha" = "Bar Buddha staff",
+                             "Kỹ thuật viên" = "Technician",
+                             "Người chăm ở Bạch Mai" = "Bach Mai carer"),
+         Origine = recode(Origine, "Ca xác định" = "Confirmed",
+                          "Ổ dịch nước ngoài" = "Imported",
+                          "Ổ dịch nội địa" = "Local"),
+         Country = recode(Country, "Trung Quốc" = "China",
+                          "Anh" = "UK", 
+                          "Hàn Quốc" = "Korea",
+                          "Mỹ" = "US",
+                          "Pháp" = "France",
+                          "Tây Ban Nha" = "Spain",
+                          "Thụy Sĩ" = "Switzerland",
+                          "Nga" = "Russia",
+                          "Thổ Nhĩ Kỳ" = "Turkey",
+                          "Hà Nội" = "Vietnam",
+                          "Hồ Chí Minh" = "Vietnam",
+                          "Séc" = "Czech",
+                          "Hà Lan" = "Netherlands",
+                          "Campuchia" = "Cambodia",
+                          "Thái Lan" = "Thailand",
+                          "Đan Mạch" = "Denmark",
+                          "Đức" = "Germany",
+                          "Úc" = "Australia",
+                          "CH Séc" = "Czech",
+                          "Hy Lạp" = "Greece",
+                          "Nhật Bản" = "Japan",
+                          "TP Hồ Chí Minh" = "Vietnam"),
+         Quarantine = recode(Quarantine, "Không cách ly" = "No quarantine",
+                             "Cách ly tại địa điểm tập trung" = "Quarantine in center",
+                             "Cách ly tại nhà" = "Quarantine at home"),
+         Kindcontact = recode(Kindcontact, "Phương tiện giao thông" = "Transport",
+                              "Gia đình" = "At home",
+                              "Hàng xóm/Khác (<2m)" = "Neighbour/Other (<2m)",
+                              "Công việc/Học tập" = "Work/Study",
+                              "Nhân viên Y tế" = "Health worker"),
+         Kindquarantine = recode(Kindquarantine, "Cơ sở điều trị" = "Treatment facility",
+                                 "Cơ sở tập trung" = "Quarantine center",
+                                 "Tại nhà" = "At home"),
+         Onset = recode(Onset, "Có" = "Yes", "Không" = "No"),
+         tested = recode(tested, "Có" = "Yes", "Không" = "No"),
+         result1 = recode(result1, "Dương tính" = "Positive", "Âm tính" = "Negative", "Đang chờ" = "Pending"),
+         result2 = recode(result2, "Dương tính" = "Positive", "Âm tính" = "Negative", "Đang chờ" = "Pending"),
+         result3 = recode(result3, "Dương tính" = "Positive", "Âm tính" = "Negative", "Đang chờ" = "Pending"),
+         result4 = recode(result4, "Dương tính" = "Positive", "Âm tính" = "Negative", "Đang chờ" = "Pending"),
+         result5 = recode(result5, "Dương tính" = "Positive", "Âm tính" = "Negative", "Đang chờ" = "Pending"),
+         result6 = recode(result6, "Dương tính" = "Positive", "Âm tính" = "Negative", "Đang chờ" = "Pending"),
+         result7 = recode(result7, "Dương tính" = "Positive", "Âm tính" = "Negative", "Đang chờ" = "Pending"),
+         result8 = recode(result8, "Dương tính" = "Positive", "Âm tính" = "Negative", "Đang chờ" = "Pending"),
+         result9 = recode(result9, "Dương tính" = "Positive", "Âm tính" = "Negative", "Đang chờ" = "Pending"),
+         result10 = recode(result10, "Dương tính" = "Positive", "Âm tính" = "Negative", "Đang chờ" = "Pending"))
+         
+  ```
+# Estimating changes in the _effective reproduction number_
+
+```{r}
+vn_confirmed_cases <- incidence(ncov_vn$Dateon) %>%
+  filter(!(is.na(Codecontact) & is.na(Lastcontact))) %>%
+  mutate(Originfect = ifelse(is.na(Origine), Origine, 0)) %>%
+  mutate(imported=ifelse(Origine == "Ổ dịch nước ngoài", 1, 0),
+         local=ifelse(Origine == "Ổ dịch nội địa", 1, 0)) %>%
+  select(PatientID, Codecontact, Origine, Lastcontact, Dateon, local, imported)
+
+```
+
+The _serial interval_ SI is the time between onset of symptoms of each case of the disease in question, and the onset of symptoms in any secondary cases that result from transmission from the primary cases. In other words, it is the time between cases in the (branching) chain of transmission of the disease. A moment's reflection reveals that the SI is, in fact, a statistical distribution of serial interval times, rather than a fixed value. That distribution can be simulated, typically using a discrete _gamma_ distribution with a given mean and standard deviation. 
+
+The `estimate_R()` function in the `EpiEstim` package allows the SI distribution to be specified parametrically. It also allows uncertainty to be incorporated into the parameterisation of this distribution, and it even allows the SI distribution to be estimated empirically, using Bayesian methods, from individual line-listings of cases. We'll examine all of those capabilities.
+
+```{r}
+# custom results plotting function to avoid the ugly
+# TableGrob messages returned by the plotting function
+# in the EpiEstim package
+plot_Ri <- function(estimate_R_obj) {
+  p_I <- plot(estimate_R_obj, "incid", add_imported_cases=TRUE) # plots the incidence
+  p_SI <- plot(estimate_R_obj, "SI") # plots the serial interval distribution
+  p_Ri <- plot(estimate_R_obj, "R")
+  return(gridExtra::grid.arrange(p_I, p_SI, p_Ri, ncol = 1))
+}
+
+vn_res_parametric_si <- estimate_R(vn_confirmed_cases,
+                                      method="parametric_si",
+                                      config = make_config(list(
+                                                           mean_si = 7.5, 
+                                                           std_si = 3.4)))
+plot_Ri(vn_res_parametric_si)
+```
