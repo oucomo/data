@@ -2,14 +2,24 @@
 title: "COVID-19 VN clean data"
 author: "Duc Du, Marc Choisy and Ronald Geskus"
 date: "13/04/2020"
-output: word_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, cache=TRUE,
+knitr::knit_hooks$set(
+  margin = function(before, options, envir) {
+    if (before) par(mgp = c(1.5, .5, 0), bty = "n", plt = c(.105, .97, .13, .97))
+    else NULL
+  })
+
+knitr::opts_chunk$set(echo = FALSE, cache=TRUE, margin = TRUE,
+                      dev.args = list(pointsize = 11), fig.height = 3.5,
+                      fig.width = 4.24725, fig.retina = 2, fig.align = "center",
                       tidy.opts=list(width.cutoff=60),
                       tidy=TRUE)
-install.packages(c("knitr", "rmarkdown", "markdown", "readxl", "tidyr", "dplyr", "reshape", "tidyverse", "magrittr", "lubridate", "tibble", "ggplot2", "ggthemes", "hrbrthemes", "rvest", "gt", "deSolve", "EpiEstim", "incidence", "distcrete", "epitrix", "projections"))
+#install.packages(c("knitr", "rmarkdown", "markdown", "readxl", "tidyr", "dplyr", "reshape", "tidyverse", "magrittr", "lubridate", "tibble", "ggplot2", "ggthemes", "hrbrthemes", "rvest", "gt", "deSolve", "EpiEstim", "incidence", "distcrete", "epitrix", "projections"))
 
 library(knitr)
 library(rmarkdown)
@@ -33,17 +43,13 @@ library(incidence)
 library(distcrete)
 library(epitrix)
 library(projections)
-
+```
 ###Data cleaning
 
-```{r}
-web.file <- "https://www.dropbox.com/sh/d5lqn35f7ln4haj/AADURohgPHST1RodDDavrNIoa?dl=0&preview=Pos+COVID-19+251+update.xlsx"
-tmp      <- tempfile(fileext=".xlsx")
-download.file(web.file,destfile=tmp, mode="wb")
-xl       <-  read_excel(tmp, sheet = "Database")
 
-setwd("D:/Documents/OUCRU/COVID-19")
-ncov_vn <- read_excel("./Pos COVID-19 251 update.xlsx", sheet = "Database") %>%
+
+```{r}
+ncov_vn <- read_excel("../raw data/Pos COVID-19 251 update.xlsx", sheet = "Database") %>%
   select(-address, -"Age group", "Name of hospital" , "Name of quaratine place") %>% 
   rename(c("Patients number" = "PatientID", 
            "Found location"="Location",
@@ -175,11 +181,75 @@ ncov_vn <- read_excel("./Pos COVID-19 251 update.xlsx", sheet = "Database") %>%
          result8 = recode(result8, "Dương tính" = "Positive", "Âm tính" = "Negative", "Đang chờ" = "Pending"),
          result9 = recode(result9, "Dương tính" = "Positive", "Âm tính" = "Negative", "Đang chờ" = "Pending"),
          result10 = recode(result10, "Dương tính" = "Positive", "Âm tính" = "Negative", "Đang chờ" = "Pending"))
-         
-  ```
-# Estimating changes in the _effective reproduction number_
+```
+
+## Serial intervals distribution
 
 ```{r}
+ncov_vn2 <- ncov_vn %>% 
+  select(PatientID, Dateon, Codecontact) %>% 
+  mutate(PatientID = paste0("NB", as.numeric(stringr::str_remove(PatientID, "^NB")))) %>% 
+  filter(PatientID %in% Codecontact | ! is.na(Codecontact)) %>% 
+  mutate(Dateon = as.Date(as.numeric(Dateon), origin = "1899-12-30"),  # I need this correction for MacOS
+         Codecontact = sub("\r\n", ", ", Codecontact),
+         Codecontact = lapply(Codecontact, strsplit, split = ", ") %>% lapply(first),
+         nb = sapply(Codecontact, length)) %>% 
+  tidyr::unnest(Codecontact) %>% 
+  mutate(infector = setNames(Dateon, PatientID)[Codecontact],
+         serial_interval = Dateon - infector)
+```
+
+```{r}
+ncov_vn3 <- ncov_vn2 %>% 
+  pull(serial_interval) %>% 
+  na.exclude() %>% 
+  as.numeric()
+  
+hist(ncov_vn3, n = 15, col = "grey", main = NULL, xlab = "value of serial interval", ylab = "(density of) probability", freq = FALSE, xlim = c(-10, 20))
+lines(density(ncov_vn3))
+lines(density(ncov_vn3, kernel = "epanechnikov"))
+lines(density(ncov_vn3, kernel = "rectangular"))
+lines(density(ncov_vn3, kernel = "triangular"))
+lines(density(ncov_vn3, kernel = "biweight"))
+lines(density(ncov_vn3, kernel = "cosine"))
+lines(density(ncov_vn3, kernel = "optcosine"))
+
+p <- fitdistrplus::fitdist(ncov_vn3, dnorm)
+xs <- seq(-15, 25, le = 512)
+lines(xs, dnorm(xs, p["mean"], p["sd"]), col = "blue", lwd = 2)
+
+abline(v = 0, col = "red", lwd = 2)
+```
+
+Number of secondary cases
+
+```{r}
+a <- ncov_vn2 %>%
+  filter(! is.na(Codecontact)) %>%
+  group_by(Codecontact) %>%
+  tally() %>%
+  pull(n)
+```
+
+```{r}
+table(a)
+```
+
+```{r}
+barplot(setNames(c(30, 12, 7, 4, 1, 0, 0, 1), 1:8),
+        xlab = "number of secondary cases", ylab = "number of primary cases")
+```
+
+```{r}
+b <- fitdistrplus::fitdist(a, dpois)
+b
+confint(b)
+```
+
+
+# Estimating changes in the _effective reproduction number_
+
+```{r eval = F}
 vn_confirmed_cases <- incidence(ncov_vn$Dateon) %>%
   filter(!(is.na(Codecontact) & is.na(Lastcontact))) %>%
   mutate(Originfect = ifelse(is.na(Origine), Origine, 0)) %>%
@@ -193,7 +263,7 @@ The _serial interval_ SI is the time between onset of symptoms of each case of t
 
 The `estimate_R()` function in the `EpiEstim` package allows the SI distribution to be specified parametrically. It also allows uncertainty to be incorporated into the parameterisation of this distribution, and it even allows the SI distribution to be estimated empirically, using Bayesian methods, from individual line-listings of cases. We'll examine all of those capabilities.
 
-```{r}
+```{r eval = F}
 # custom results plotting function to avoid the ugly
 # TableGrob messages returned by the plotting function
 # in the EpiEstim package
