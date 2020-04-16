@@ -1,0 +1,122 @@
+---
+title: "VN-CDC Covid-19 dashboard data"
+output:
+  html_document:
+    theme: cerulean
+    toc: yes
+  pdf_document:
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{css, echo=FALSE}
+pre, code {white-space:pre !important; overflow-x:auto}
+```
+
+```{r general options, include = FALSE}
+knitr::knit_hooks$set(
+  margin = function(before, options, envir) {
+    if (before) par(mgp = c(1.5, .5, 0), bty = "n", plt = c(.105, .97, .13, .97))
+    else NULL
+  },
+  prompt = function(before, options, envir) {
+    options(prompt = if (options$engine %in% c("sh", "bash")) "$ " else "> ")
+  })
+
+knitr::opts_chunk$set(margin = TRUE, message = FALSE, warning = FALSE,
+                      prompt = FALSE, comment = "##", collapse = FALSE,
+                      cache = FALSE, autodep = TRUE,
+                      dev.args = list(pointsize = 11), fig.height = 3.5,
+                      fig.width = 4.24725, fig.retina = 2, fig.align = "center")
+
+options(width = 263)
+
+l <- "en_US.UTF-8"
+Sys.setenv(LANGAGE = l)
+Sys.setlocale(locale = l)
+Sys.setlocale("LC_MESSAGES", l)
+```
+
+```{r}
+library(readxl)
+library(dplyr)
+```
+
+## Data cleaning
+
+```{r}
+file <- "../raw data/file ca xam nhap + ca thu cap-2.xlsx"
+```
+
+A function that converts dates, accounting for the fact that 2 formats are mixed
+in the same vector...
+
+```{r}
+convert_dates <- function(x) {
+  as.Date(ifelse(grepl("/", x),
+                 as.Date(x, "%d/%m/%y"),
+                 as.Date(as.numeric(x), origin = "1899-12-30")),
+          origin = "1970-01-01")
+}                 
+```
+
+Imported cases:
+
+```{r}
+imported <- read_excel(file, " xam nhap") %>%
+  select(`Mã BN`, `Ngày xét nhiệm`, Code) %>% 
+  setNames(c("ID", "date", "code")) %>% 
+  mutate(date = convert_dates(date))
+```
+
+Origin of cases:
+
+```{r}
+origin <- read_excel(file, "Sheet4") %>% 
+  select("Ngày", "Ca lây nhiễm từ ca xâm nhập", "Ca dương tính sau khi cách ly",
+         "Ca thứ phát lây tại cộng đồng", "Ca xâm nhập phát hiện sau khi nhập cảnh") %>% 
+  setNames(c("date", "at_entry", "isolation", "community", "after_entry")) %>% 
+  mutate(date = lubridate::mdy(date)) %>% 
+  mutate_if(is.numeric, as.integer)
+```
+
+Community transmission:
+
+```{r}
+community <- read_excel(file, "thu cap") %>% 
+  select("Mã BN", "Ngày xét nhiệm", "Code") %>%
+  setNames(c("ID", "date", "code")) %>% 
+  mutate(date = convert_dates(date))
+```
+
+### Writing to disk
+
+```{r}
+write.csv3 <- function(...) write.csv2(..., quote = FALSE, row.names = FALSE)
+write.csv3(origin, "../clean data/origin.csv")
+write.csv3(imported, "../clean data/imported.csv")
+write.csv3(community, "../clean data/community.csv")
+saveRDS(origin, "../clean data/origin.rds")
+saveRDS(imported, "../clean data/imported.rds")
+saveRDS(community, "../clean data/community.rds")
+```
+
+## Data quick vizualization
+
+```{r}
+sum(tail(origin, 1)[, -1])
+```
+
+```{r}
+nrow(imported)
+```
+
+```{r}
+nrow(community)
+```
+
+```{r}
+nrow(imported) + nrow(community)
+```
+
