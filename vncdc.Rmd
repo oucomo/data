@@ -61,13 +61,21 @@ convert_dates <- function(x) {
 }                 
 ```
 
+```{r}
+fix_dates <- function(x, m = 4) {
+  as.Date(ifelse((lubridate::month(x) > m & lubridate::day(x) == m) | x < x[1],
+                 lubridate::ydm(x), x),
+          origin = "1970-01-01")
+}
+```
+
 Imported cases:
 
 ```{r}
 imported <- read_excel(file, " xam nhap") %>%
   select(`Mã BN`, `Ngày xét nhiệm`, Code) %>% 
   setNames(c("ID", "date", "code")) %>% 
-  mutate(date = convert_dates(date))
+  mutate(date = fix_dates(convert_dates(date)))
 ```
 
 Origin of cases:
@@ -77,7 +85,7 @@ origin <- read_excel(file, "Sheet4") %>%
   select("Ngày", "Ca lây nhiễm từ ca xâm nhập", "Ca dương tính sau khi cách ly",
          "Ca thứ phát lây tại cộng đồng", "Ca xâm nhập phát hiện sau khi nhập cảnh") %>% 
   setNames(c("date", "at_entry", "isolation", "community", "after_entry")) %>% 
-  mutate(date = lubridate::mdy(date)) %>% 
+  mutate(date = lubridate::mdy(date, locale = "en_US.UTF-8")) %>% 
   mutate_if(is.numeric, as.integer)
 ```
 
@@ -87,7 +95,7 @@ Community transmission:
 community <- read_excel(file, "thu cap") %>% 
   select("Mã BN", "Ngày xét nhiệm", "Code") %>%
   setNames(c("ID", "date", "code")) %>% 
-  mutate(date = convert_dates(date))
+  mutate(date = fix_dates(convert_dates(date)))
 ```
 
 ### Writing to disk
