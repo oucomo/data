@@ -39,6 +39,7 @@ Sys.setlocale("LC_MESSAGES", l)
 ```
 
 ```{r}
+library(magrittr)
 library(readxl)
 library(dplyr)
 ```
@@ -98,6 +99,22 @@ community <- read_excel(file, "thu cap") %>%
   mutate(date = fix_dates(convert_dates(date)))
 ```
 
+Isolations:
+
+```{r}
+isolation <- read_excel("../raw data/Vietnam interventions.xlsx", skip = 1) %>% 
+  mutate_at("date", as.Date) %>% 
+  arrange(date)
+```
+
+```{r}
+isolation_vncdc <- isolation %>% 
+  select("date", "quarantine in health facilities",
+         "quarantine at home or hotel", "quarantine in quarantine stay") %>% 
+  setNames(c("date", "health_facility", "home", "quarantine")) %>% 
+  na.exclude()
+```
+
 ### Writing to disk
 
 ```{r}
@@ -105,9 +122,11 @@ write.csv3 <- function(...) write.csv2(..., quote = FALSE, row.names = FALSE)
 write.csv3(origin, "../clean data/origin.csv")
 write.csv3(imported, "../clean data/imported.csv")
 write.csv3(community, "../clean data/community.csv")
+write.csv3(isolation_vncdc, "../clean data/isolation_vncdc.csv")
 saveRDS(origin, "../clean data/origin.rds")
 saveRDS(imported, "../clean data/imported.rds")
 saveRDS(community, "../clean data/community.rds")
+saveRDS(isolation_vncdc, "../clean data/isolation_vncdc.rds")
 ```
 
 ## Data quick vizualization
@@ -126,5 +145,52 @@ nrow(community)
 
 ```{r}
 nrow(imported) + nrow(community)
+```
+
+```{r fig.width = 2 * 4.24725}
+colors <- c(`at entry` = "#e41a1c",
+            `from isolation` = "#377eb8",
+            `after entry` = "#4daf4a",
+            `community transmission` = "#984ea3")
+xlim <- range(origin$date)
+lwd <- 2
+origin %>% 
+  mutate(total = at_entry + isolation + community + after_entry) %>%
+  with({
+    plot(date, total, type = "s", lwd = lwd, xlim = xlim,
+         xlab = NA, ylab = "cumulative number of confirmed cases")
+    lines(date, at_entry, type = "s", lwd = lwd, col = colors[1])
+    lines(date, isolation, type = "s", lwd = lwd, col = colors[2])
+    lines(date, after_entry, type = "s", lwd = lwd, col = colors[3])
+    lines(date, community, type = "s", lwd = lwd, col = colors[4])
+  })
+legend("topleft", legend = c("total", names(colors)), col = c("black", colors), lwd = lwd, bty = "n")
+
+```
+
+```{r}
+rep_x <- function(x) {
+  rep(c(x, tail(x, 1) + 1), each = 2)
+}
+```
+
+```{r}
+rep_y <- function(y) {
+  c(0, rep(y, each = 2), 0)
+}
+```
+
+```{r fig.width = 2 * 4.24725, fig.height = .65 * 3.5}
+col <- c(`home: low-risk foreign countries` = "#1b9e77", `quarantine: high-risk area, F1, some F2` = "#7570b3", `health facility: symptoms with F1 or high-risk area` = "#d95f02")
+col_fill <- adjustcolor(col, .5)
+with(isolation_vncdc, {
+ plot(date, home, type = "n", xlim = xlim, ylim = c(max(home), 0), lwd = lwd, col = colors[1], axes = FALSE, xlab = NA, ylab = "number of people isolated")
+ polygon(rep_x(date), rep_y(home), col = col_fill[1], border = col[1], lwd = lwd)
+ polygon(rep_x(date - .5), rep_y(quarantine), col = col_fill[2], border = col[2], lwd = lwd)
+ polygon(rep_x(date + .5), rep_y(health_facility), col = col_fill[3], border = col[3], lwd = lwd)
+ axis(2)
+ axis(3, as.numeric(lubridate::ymd(c("2020-02-01", "2020-03-01", "2020-04-01"))))
+})
+legend("topleft", legend = rev(names(col)), fill = rev(col_fill), border = rev(col), bty = "n")
 ```
 
