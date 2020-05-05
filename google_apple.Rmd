@@ -1,5 +1,5 @@
 ---
-title: "Google community mobility data"
+title: "Google community and Apple mobility data"
 output:
   html_document:
     theme: cerulean
@@ -38,17 +38,39 @@ Sys.setlocale(locale = l)
 Sys.setlocale("LC_MESSAGES", l)
 ```
 
-The data are available in CSV format [here](https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv).
+The Google Community Mobility data are available in CSV format
+[here](https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv) and
+the Apple Mobility data are available in CSV format
+[here](https://www.apple.com/covid19/mobility).
 
 ```{r}
+library(stringr)
+library(lubridate)
 library(dplyr)
 ```
+
+Reading Google data
 
 ```{r}
 google <- read.table("../raw data/google community mobility data VN.csv", header = TRUE, sep = ",") %>% 
   select(-country_region_code, -country_region, -sub_region_1, -sub_region_2) %>% 
   setNames(stringr::str_remove(names(.), "_percent_change_from_baseline")) %>% 
-  mutate_if(is.character, lubridate::ymd) %>% 
+  mutate_if(is.character, ymd) %>% 
+  as_tibble()
+```
+
+Reading Apple data:
+
+```{r}
+apple <- read.csv("../raw data/applemobilitytrends-2020-05-03.csv") %>% 
+  filter(region == "Vietnam") %>% 
+  select(-geo_type, -region, -transportation_type, -alternative_name) %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  bind_cols(., a = rownames(.)) %>% 
+  mutate(a = ymd(str_remove(a, "X"))) %>% 
+  setNames(c("car", "on_foot", "date")) %>% 
+  select(date, everything()) %>% 
   as_tibble()
 ```
 
@@ -69,6 +91,8 @@ Writing to disk:
 
 ```{r}
 write.csv2(google, "../clean data/google.csv", quote = FALSE, row.names = FALSE)
+write.csv2(apple, "../clean data/apple.csv", quote = FALSE, row.names = FALSE)
 saveRDS(google, "../clean data/google.rds")
+saveRDS(apple, "../clean data/apple.rds")
 ```
 
