@@ -1,0 +1,74 @@
+---
+title: "Google community mobility data"
+output:
+  html_document:
+    theme: cerulean
+    toc: yes
+  pdf_document:
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{css, echo=FALSE}
+pre, code {white-space:pre !important; overflow-x:auto}
+```
+
+```{r general options, include = FALSE}
+knitr::knit_hooks$set(
+  margin = function(before, options, envir) {
+    if (before) par(mgp = c(1.5, .5, 0), bty = "n", plt = c(.105, .97, .13, .97))
+    else NULL
+  },
+  prompt = function(before, options, envir) {
+    options(prompt = if (options$engine %in% c("sh", "bash")) "$ " else "> ")
+  })
+
+knitr::opts_chunk$set(margin = TRUE, message = FALSE, warning = FALSE,
+                      prompt = FALSE, comment = "##", collapse = FALSE,
+                      cache = FALSE, autodep = TRUE,
+                      dev.args = list(pointsize = 11), fig.height = 3.5,
+                      fig.width = 4.24725, fig.retina = 2, fig.align = "center")
+
+options(width = 263)
+
+l <- "en_US.UTF-8"
+Sys.setenv(LANGAGE = l)
+Sys.setlocale(locale = l)
+Sys.setlocale("LC_MESSAGES", l)
+```
+
+The data are available in CSV format [here](https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv).
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+google <- read.table("../raw data/google community mobility data VN.csv", header = TRUE, sep = ",") %>% 
+  select(-country_region_code, -country_region, -sub_region_1, -sub_region_2) %>% 
+  setNames(stringr::str_remove(names(.), "_percent_change_from_baseline")) %>% 
+  mutate_if(is.character, lubridate::ymd) %>% 
+  as_tibble()
+```
+
+Let's have a quick look at the data:
+
+```{r}
+with(google, {
+  plot(date, retail_and_recreation, type = "l", ylim = c(-70, 30))
+  lines(date, grocery_and_pharmacy)
+  lines(date, parks)
+  lines(date, transit_stations)
+  lines(date, workplaces)
+  lines(date, residential)
+})
+```
+
+Writing to disk:
+
+```{r}
+write.csv2(google, "../clean data/google.csv", quote = FALSE, row.names = FALSE)
+saveRDS(google, "../clean data/google.rds")
+```
+
