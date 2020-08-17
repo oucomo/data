@@ -1,0 +1,152 @@
+---
+title: "Danang"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{css horizontal scrolling, echo = FALSE}
+pre, code {white-space:pre !important; overflow-x:scroll !important}
+html { overflow-x: scroll; }
+
+.rewrite {
+background-color: LightYellow;
+}
+```
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+
+## Packages
+
+```{r}
+library(googlesheets4)
+library(lubridate)
+library(magrittr)
+library(stringr)
+library(purrr)
+library(tidyr)
+library(dplyr)
+```
+
+## Functions
+
+These 2 functions are needed to deal with the fact that some free text is in the
+`date_onset` variable:
+
+```{r}
+null2na <- function(x) {
+  if (is.null(x)) return(NA)
+  x
+}
+```
+
+```{r}
+unlist_dates <- function(x) {
+  x %>%
+    as.data.frame() %>%
+    t() %>%
+    as.data.frame() %>%
+    pull(V1)
+}
+```
+
+## Data
+
+```{r}
+danang <- "https://docs.google.com/spreadsheets/d/1dn18UwmnDv0dO-Z8bRupR5yFOvv5q34zDm9HhJJwa8o/edit?usp=drive_web&ouid=112104994454638477636" %>% 
+  read_sheet() %>% 
+  select(-TT, -`Họ và tên`, -`Nhóm tuổi`, -`Triệu chứng khởi phát`, -`Nghề nghiệp`, -`Cách phát hiện`, -starts_with("...")) %>% 
+  rename(date_report         = `Ngày công bố`,
+         id                  = MCB,
+         birth_year          = `Năm sinh`,
+         age                 = Tuổi,
+         gender              = Giới,
+         commune             = `Xã/Phường`,
+         district            = `Quận/Huyện`,
+         province            = `Tỉnh/TP ĐK thường trú`,
+         province_report     = `Nơi BC ca bệnh`,
+         onset_before_report = `Khởi phát`,
+         date_onset          = `Ngày khởi phát`,
+         date_sampling       = `Ngày lấy mẫu`,
+         date_pos_test_1     = `Ngày xét nghiệm (+)`,
+         hospital            = `Bệnh viện điều trị Covid hiện tại`,
+         province_hospital   = `Tỉnh nhập viện`,
+         comorbidity         = `Bệnh nền`,
+         comorbidity_name    = `Tên bệnh nền`,
+         symptom_admission   = `Tình trạng khi vào viện`,
+         sus_infect_location = `Nơi nghi ngờ nhiễm bệnh`,
+         patient_group       = `Nhóm bệnh nhân`,
+         suspected_source    = `Nguồn nghi nhiễm`,
+         infector            = `Tiếp xúc với ca dương tính`,
+         relationship        = `Mối quan hệ với ca dương tính`,
+         F_type              = `Loại lây nhiễm`,
+         date_first_contact  = `Ngày tiếp xúc đầu tiên`,
+         date_last_contact   = `Ngày tiếp xúc cuối cùng`,
+         dead                = `Tình trạng`,
+         date_death_disch    = `Ngày tử vong/hoàn thành điều trị`,
+         notes               = `Ghi chú`) %>% 
+  mutate_if(is.list, ~ map(.x, null2na) %>% unlist_dates()) %>% # because some date variables contain free text
+  mutate_at("date_last_contact", ~ str_replace_all(.x, "Chưa xác định", NA_character_) %>% ymd()) %>% # because some date variables contain free text
+  mutate_if(~ "POSIXct" %in% class(.x), as.Date) %>% 
+  mutate_at(c("birth_year", "age"), as.integer) %>% 
+  mutate_at(c("province", "district", "commune", "province_report", "province_hospital"),
+            ~ .x %>% str_squish() %>% str_to_title()) %>% 
+  mutate(gender              = recode(gender, Nam = "male", Nữ = "female"),
+         onset_before_report = recode(onset_before_report,
+                                      `Chưa khởi phát` = "no",
+                                      `Chưa rõ`        = "unclear",
+                                      `Có`             = "yes"),
+         symptom_admission   = recode(symptom_admission,
+                                      `Không triệu chứng` = "none",
+                                      Nặng                = "severe",
+                                      Nhẹ                 = "mild"),
+         patient_group       = recode(patient_group,
+                                      `Hàng xóm`       = "neighbor",
+                                      `Người chăm sóc` = "care giver",
+                                      `Người thăm`     = "visitor",
+                                      `Người quen`     = "acquaintance",
+                                      `Chưa xác định`  = "unknown",
+                                      `Cộng đồng`      = "community",
+                                      `Nhân viên Y tế` = "healthcare staff",
+                                      `Bệnh nhân`      = "patient",
+                                      `Người nhà`      = "household"),
+         comorbidity         = ! comorbidity == "Không",
+         dead                = replace_na(dead == "Tử vong", FALSE),
+         infector            = strsplit(infector, ", "),
+         district            = district %>% 
+                                 str_replace("^Thanh Bình$"  , "Thăng Bình") %>% 
+                                 str_replace("^Tp Hội An$"   , "Hội An"),
+         commune             = commune %>% 
+                                 str_replace("^Điện Hoà$"    , "Điện Hòa") %>% 
+                                 str_replace("^Hòa Hải$"     , "Hoà Hải") %>% 
+                                 str_replace("^Hoà Hiệp Bắc$", "Hòa Hiệp Bắc") %>% 
+                                 str_replace("^Hòa Mỹ$"      , "Hòa Minh") %>% 
+                                 str_replace("^Quế Xuân I$"  , "Quế Xuân 1") %>% 
+                                 str_replace("^Thanh Khê$"   , "An Khê") %>% 
+                                 str_replace("^Tuân Chính$"  , "Tân Chính"),
+         district            = if_else(province == "Đà Nẵng" & commune  == "Hòa Khê"      , "Thanh Khê", district),
+         district            = if_else(province == "Đà Nẵng" & commune  == "Phước Mỹ"     , "Sơn Trà", district),
+         district            = if_else(province == "Đà Nẵng" & commune  == "Hòa Cường Nam", "Hải Châu" , district),
+         commune             = if_else(province == "Quảng Nam" & district == "Duy Xuyên" & commune == "Châu Hiệp" , "Duy Hải"    , commune),
+         commune             = if_else(province == "Đà Nẵng"   & district == "Hải Châu"  & commune == "Hải Phòng" , "Hải Châu I" , commune),
+         commune             = if_else(province == "Đà Nẵng"   & district == "Hải Châu"  & commune == "Hùng Vương", "Nam Dương"  , commune),
+         district            = if_else(province == "Đà Nẵng" & commune  == "Nguyễn Hữu Thọ", "Hải Châu"     , district),
+         commune             = if_else(province == "Đà Nẵng" & commune  == "Nguyễn Hữu Thọ", "Hòa Thuận Tây", commune),
+         
+         district            = if_else(province == "Đà Nẵng" & commune  == "Nguyễn Sắc Kim", "Cẩm Lệ"  , district),
+         commune             = if_else(province == "Đà Nẵng" & commune  == "Nguyễn Sắc Kim", "Hòa Xuân", commune),
+         
+         commune = if_else(province == "Quảng Nam" & district == "Hội An" & commune == "Chùa Bảo Thắng", "Cẩm Châu", commune))
+```
+
+Writing to disk:
+
+```{r}
+danang %>% 
+  mutate_at("infector", map_chr, paste, collapse = " | ") %>% 
+  write.csv2("../clean data/danang.csv", quote = FALSE, row.names = FALSE)
+saveRDS(danang, "../clean data/danang.rds")
+```
+
