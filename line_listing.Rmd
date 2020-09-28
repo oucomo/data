@@ -1,0 +1,151 @@
+---
+title: "Line listing"
+output:
+  html_document:
+    theme: cerulean
+    toc: yes
+  pdf_document:
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{css, echo=FALSE}
+pre, code {white-space:pre !important; overflow-x:auto}
+```
+
+```{r general options, include = FALSE}
+knitr::knit_hooks$set(
+  margin = function(before, options, envir) {
+    if (before) par(mgp = c(1.5, .5, 0), bty = "n", plt = c(.105, .97, .13, .97))
+    else NULL
+  },
+  prompt = function(before, options, envir) {
+    options(prompt = if (options$engine %in% c("sh", "bash")) "$ " else "> ")
+  })
+
+knitr::opts_chunk$set(margin = TRUE, message = FALSE, warning = FALSE,
+                      prompt = FALSE, comment = "##", collapse = FALSE,
+                      cache = FALSE, autodep = TRUE,
+                      dev.args = list(pointsize = 11), fig.height = 3.5,
+                      fig.width = 4.24725, fig.retina = 2, fig.align = "center")
+
+options(width = 263)
+
+l <- "en_US.UTF-8"
+Sys.setenv(LANGAGE = l)
+Sys.setlocale(locale = l)
+Sys.setlocale("LC_MESSAGES", l)
+```
+
+```{r}
+library(magrittr)
+library(stringr)
+library(lubridate)
+library(purrr)
+library(dplyr)
+```
+
+Reading the data:
+
+```{r}
+f <- function(x) {
+  sel <- which(grepl("/", x))
+  x[sel] <- dmy(x[sel])
+  x
+}
+```
+
+
+```{r}
+ll <- readxl::read_excel("../raw data/Pos COVID-19 413 update.xlsx") %>% 
+    select(`Patients number`, Age, Gender, Nationality,
+         `Flight number`, `Code of contact`,
+         `Origine of infection`, `date of admision`, `Date onset`,
+         `date of discharge`, `kind of contact`, `Quarantine after landed`,
+         `Last contact`, `Name of hospital`, `Kind of Quarantine`,
+         `Date of Quarantine statted`, `Name of quaratine place`,
+         `date of first sample`, `1st result`, `date of second sample`, `Result 02`,
+         `date of 03rd sample`, `Result 03`, `date of 04th sample`, `Result 04`,
+         `date of 05th sample`, `Result 05`, `date of 06th sample`, `Result 06`,
+         `date of 07th sample`, `Result 07`, `date of 08th sample`, `Result 08`,
+         `date of 09th sample`, `Result 09`, `date of 10th sample`, `Result 10`) %>% 
+  setNames(c("id", "age", "gender", "nationality",
+             "flight_number", "contact_id", "origin_of_infection", "date_of_admission",
+             "date_of_onset", "date_of_discharge", "type_of_contact", "quarantine",
+             "last_contact", "hospital", "type_of_quarantine", "date_of_quarantine",
+             "quarantine_place", "sample1", "result1", "sample2", "result2", "sample3",
+             "result3", "sample4", "result4", "sample5", "result5", "sample6", "result6",
+             "sample7", "result7", "sample8", "result8", "sample9", "result9","sample10", "result10")) %>% 
+  mutate(id = paste0("NB", as.numeric(str_remove(id, "NB"))),
+         gender = recode(gender, Nam = "male", Nữ = "female"),
+         nationality = ifelse(nationality == "Việt Nam", "Vietnam", "foreigner"),
+         flight_number = str_remove(flight_number, "\\(.*\\)") %>% str_trim() %>%
+                                    recode(`QR0160 QR164, QR 832, PG947` = "PG947", `SU2031/ SU290` = "SU2031",
+                                           `QR164, QR 832, PG947` = "PG947", `EK4/EK392` = "EK392", `TG933 , TG564` = "TG564",
+                                           `TK162  / VJ642` = "TK162", `TK162/QH1521` = "TK162", VN0050 = "VN50", VN0018 = "VN18") %>%
+                                    na_if("--") %>% na_if("Chuyến bay ...") %>% na_if("Chuyến bay...") %>% na_if("Chuyên cơ riêng"),
+         flight_number = ifelse(id == "NB18", "VJ981", ifelse(id == "NB185", "TK162", flight_number)), # data coming from "../raw data/Covid data for modelling.xlsx" and "../raw data/Pos COVID-19 for modelling.xlsx"
+         origin_of_infection = recode(origin_of_infection, `Ca xác định` = "F1imported", `Ổ dịch nội địa`= "domestic outbreak", `Ổ dịch nước ngoài` = "imported"),
+#         date_of_onset = as.Date(as.numeric(date_of_onset), origin = "1899-12-30"),
+         quarantine = recode(quarantine, "Cách ly tại địa điểm tập trung" = "at entry", "Cách ly tại nhà" = "at home", "Không cách ly" = "none"),
+         type_of_contact = recode(type_of_contact, "Công việc/Học tập" = "work/study", "Du lịch" = "travel", "Gia đình" = "family",
+                                  "Hàng xóm/Khác (<2m)" = "neighbor/close contact", "Nhân viên Y tế" = "healthcare staff", "Phương tiện giao thông" = "transportation"),
+         hospital2 = purrr::map_dfc(c("nhiệt đới", "củ chi", "cần giờ", "trung ương"), str_match, string = tolower(hospital)) %>% apply(1, paste, collapse = " "),
+         hospital2 = recode(hospital2, "NA củ chi NA NA" = "Cu Chi", "NA NA cần giờ NA" = "Can Gio", "NA NA NA NA" = "other",
+                            "NA NA NA trung ương" = "other", "nhiệt đới NA NA NA" = "HTD", "nhiệt đới NA NA trung ương" = "NHTD"),
+         type_of_quarantine = recode(type_of_quarantine,"Cơ sở điều trị" = "treatment facility", "Cơ sở tập trung" = "centralized facility", "Tại nhà" = "home"),
+         quarantine_place2 = purrr::map_dfc(c("nhiệt đới", "củ chi", "cần giờ", "trung ương"), str_match, string = tolower(quarantine_place)) %>% apply(1, paste, collapse = " "),
+         quarantine_place2 = recode(quarantine_place2, "NA củ chi NA NA" = "Cu Chi", "NA NA cần giờ NA" = "Can Gio", "NA NA NA NA" = "other",
+                                    "NA NA NA trung ương" = "other", "nhiệt đới NA NA NA" = "HTD", "nhiệt đới NA NA trung ương" = "NHTD"),
+         last_contact = ymd(str_replace(as.character(last_contact), "^2002", "2020")), # fixing some date
+         sample2 = as.Date(as.numeric(str_replace(sample2, "31/04/2020", as.character(as.numeric(dmy("31/03/2020")) + as.numeric(dmy(01011970)) - as.numeric(dmy(30121899))))), origin = dmy(30121899))) %>%
+  mutate_if(is.POSIXct, as.Date) %>% 
+  mutate_if(is.numeric, as.integer) %>% 
+  mutate_at(vars(starts_with("result")), ~ .x == "Dương tính") %>% 
+  mutate(quarantine = ifelse(id %in% c("NB269", "NB270"), "at entry", quarantine)) %>%  # fix the quarantine status of the last 2.
+  mutate(last_contact = as_date(ifelse(id == "NB32", ymd(20200309), last_contact))) %>%  # fix the quarantine status of the last 2.
+  mutate(quarantine = ifelse(id == "NB59", "none", quarantine)) %>% 
+  mutate(date_of_discharge = as_date(ifelse(id == "NB199", ymd(20200414), date_of_discharge))) %>% 
+  select(id, age, gender, nationality, date_of_onset, date_of_admission, date_of_discharge, hospital, hospital2, origin_of_infection, type_of_contact, quarantine,
+         type_of_quarantine, date_of_quarantine, quarantine_place, quarantine_place2, flight_number, last_contact, contact_id, everything())
+```
+
+Note: 217 people on VN54
+
+Adding the cluster information:
+
+```{r}
+bach_mai <- paste0("NB", c(213, 197, 219, 185, 209, 170, 86, 163, 107,
+                           161, 87, 133, 162, 239, 266, 223, 172))
+buddha_bar <- paste0("NB", c(207, 91, 235, 124, 152, 126, 98, 125, 224, 236,
+                             247, 158, 97, 206, 120, 159, 151, 157, 127))
+truong_sinh <- paste0("NB", c(199, 205, 195, 193, 231, 208, 214, 168, 189, 175, 201, 215, 227, 202,
+                              174, 177, 169, 196, 192, 178, 200, 191, 188, 194, 198, 176, 190, 184))
+me_linh <- paste0("NB", c(254, 258, 257, 267, 264, 243, 263, 261, 250, 259, 262, 253, 260))
+
+ll %<>% mutate(cluster = ifelse(id %in% bach_mai, "Bach Mai",
+                                ifelse(id %in% buddha_bar, "Buddha bar",
+                                       ifelse(id %in% truong_sinh, "Truong Sinh",
+                                              ifelse(id %in% me_linh, "Me Linh", NA)))))
+```
+
+Reformating the contact ID:
+
+```{r eval = FALSE}   
+ll %<>% 
+  mutate(contact_id = sub("\r\n", ",", contact_id) %>%
+                        map(strsplit, split = ",") %>%
+                        map(first) %>% # because of strsplit()
+                        map(str_squish)) 
+```
+
+Writing to disk:
+
+```{r}
+ll %>% 
+  mutate(contact_id = map(contact_id, paste, collapse = " | ") %>% unlist()) %>% 
+  write.csv2("../clean data/line_listing0.csv", quote = FALSE, row.names = FALSE)
+saveRDS(ll, "../clean data/line_listing0.rds")
+```
+
