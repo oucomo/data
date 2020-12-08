@@ -1,5 +1,5 @@
 ---
-title: "Script to translate 'Phân tích ca dương tính COVID-19-3'"
+title: "Script to translate 'Phân tích ca dương tính COVID-19-3'"
 output:
   html_document: default
   pdf_document: default
@@ -630,7 +630,7 @@ positive_data_translate <- "Line_listing_COVID19_13.xlsx" %>% read_excel() %>%
                 `Bệnh viện Đa khoa miền núi phía Bắc`                               = "Bệnh viện Đa khoa khu vực miền núi phía Bắc Quảng Nam",
                 `Bệnh viện Đa khoa Quảng Nam`                                       = "Bệnh viện Đa khoa tỉnh Quảng Nam",
                 `Bệnh viện đa khoa Quảng Nam`                                       = "Bệnh viện Đa khoa tỉnh Quảng Nam",
-                `Bệnh viện đa khoa Quảng Nam`                                       = "Bệnh viện Đa khoa tỉnh Quảng Nam",
+                `Bệnh viện đa khoa Quảng Nam`                                       = "Bệnh viện Đa khoa tỉnh Quảng Nam",
                 `Bệnh viện đa khoa Quảng Ngãi`                                      = "Bệnh viện Đa khoa tỉnh Quảng Ngãi",
                 `Bệnh viện đa khoa Sa đéc`                                          = "Bệnh viện Đa khoa Sa Đéc",
                 `Bệnh viện Đa khoa Sa Đéc, tỉnh Đồng Tháp`                          = "Bệnh viện Đa khoa Sa Đéc",
@@ -649,7 +649,7 @@ positive_data_translate <- "Line_listing_COVID19_13.xlsx" %>% read_excel() %>%
                 `Bệnh viện đa khoa vùng Tây Nguyên`                                 = "Bệnh viện Đa Khoa Vùng Tây Nguyên",
                 `Bệnh viện Đà Nẵng`                                                 = "Bệnh viện Đa khoa Đà Nẵng",
                 `Bệnh viện Huyện Đồng Văn, Hà Giang`                                = "Bệnh viện Đa khoa huyện Đồng Văn",
-                `Bệnh viện Lao và Bệnh phổi Thành phố Cần Thơ`       = "Bệnh viện Lao và Bệnh phổi Thành phố Cần Thơ",
+                `Bệnh viện Lao và Bệnh phổi Thành phố Cần Thơ`       = "Bệnh viện Lao và Bệnh phổi Thành phố Cần Thơ",
                 `Bệnh viện Lao và Bệnh phổi Thành phố Cần Thơ.`                     = "Bệnh viện Lao và Bệnh phổi Thành phố Cần Thơ",
                 `Bệnh viện Lao và Bệnh phổi thành phố Cần Thơ.`                     = "Bệnh viện Lao và Bệnh phổi Thành phố Cần Thơ",
                 `Bệnh viện Lao và Bv phổi Cần Thơ`                                  = "Bệnh viện Lao và Bệnh phổi Thành phố Cần Thơ",
@@ -1242,6 +1242,99 @@ positive_data_translate <- "Line_listing_COVID19_13.xlsx" %>% read_excel() %>%
                                `Vợ bệnh nhân 436` = "wife of BN436",
                                `Vợ của nhân viên Trường Sinh` = "wife of an employee at Truong Sinh company",
                                `Vợ NB254` = "wife of BN254"),
+        comorbidity = recode(comorbidity,
+                             `THA`                                                                      = "hypertension",
+                             `Bạch cầu cấp, đái tháo đường, tăng huyết áp`                              = "acute leukemia, diabetes, hypertension",
+                             `Bệnh thận mạn giai đoạn cuối, thẩm phân phúc mạc 12 năm, suy tim, tăng huyết áp`  = 
+                               "end stage chronic kidney disease, peritoneal dialysis for 12 years, heart failure, hypertension",
+                             `Béo phì độ 2/THA`                                                         = "obesity level 2, hypertension",
+                             `Bị mù`                                                                    = "blindness",
+                             `Bướu cổ, sỏi thận`                                                        = "goiter, kidney stones",
+                             `Cao huyết áp`                                                             = "hypertension",
+                             `Chảy máu chân răng`                                                       = "bleeding gums",
+                             `Chưa rõ`                                                                  = "unknown",
+                             `Copd, u ác niệu quản đã mổ cách đây 2 năm`                                = "COPD, ureteral melanoma operated 2 years ago",
+                             `Đa u tủy xương`                                                           = "multiple myeloma",
+                             `Đa u tủy xương tế bào ác tính, đái tháo đường typ 2, nhiễm trùng huyết.`  = "multiple malignant myeloma, type 2 diabetes, septicemia",
+                             `Đái tháo đườg, viêm khớp`                                                 = "diabetes, arthritis",
+                             `Đái tháo đường`                                                           = "diabetes",
+                             `Đái tháo đường típ 2`                                                     = "type 2 diabetes",
+                             `Đái tháo đường typ 2`                                                     = "type 2 diabetes",
+                             `Đái tháo đường type 2, tăng huyết áp`                                     = "type 2 diabetes, hypertension",
+                             `đái tháo đường type 2, tăng huyết áp, béo phì`                            = "type 2 diabetes, hypertension, obesity",
+                             `Đái thao đường, suy kiệt, suy tim`                                        = "diabetes, exhaustion, heart failure",
+                             `Đái tháo đường, Tăng huyết áp`                                            = "diabetes, hypertension",
+                             `Đái tháo đường, tăng huyết áp, bệnh về tim mạch`                          = "diabetes, hypertension, cardiovascular disease",
+                             `Dị ứng thời tiết`                                                         = "seasonal allergy",
+                             `Động kinh/Hen/Ung thư vú`                                                 = "seizures, asthma, breast cancer",
+                             `Đột quỵ`                                                                  = "stroke",
+                             `ĐTĐ Type II`                                                              = "type 2 diabetes",
+                             `GERD`                                                                     = "GERD",
+                             `Hen từ nhỏ`                                                               = "asthma from childhood",
+                             `Hẹp van tim`                                                              = "stenosis",
+                             `Không`                                                                    = "no",
+                             `Liệt dây TKVII`                                                           = "facial nerve palsy",
+                             `Loãng xương`                                                              = "osteoporosis",
+                             `Nang trung thất đã phẫu thuật cách đây 2 năm`                             = "mediastinal cyst operated 2 years ago",
+                             `Ngoại tâm thu thất/ Thiếu máu cơ tim`                                     = "ventricular extrasystole, myocardial anemia",
+                             `Parkison, sỏi ống mật chủ, viêm dạ dày`                                   = "parkison, cholelithiasis, gastritis",
+                             `Rối loạn tiền đình`                                                       = "vestibular disorders",
+                             `Rối loạn tiền đình, viêm dạ dày tá tràng, Phì đại tiền liệt tuyến`        = 
+                               "vestibular disorders, gastroduodenitis, prostate enlargement",
+                             `Sốc nhiễm trùng, Suy hô hấp trên bệnh nhân Hội chứng Guillain- Barre, Đái tháo đường type 2` = 
+                               "septic shock, respiratory failure in patient with Guillain-Barre syndrome, type 2 diabetes",
+                             `Sỏi thận`                                                                 = "kidney stones",
+                             `Suy thận`                                                                 = "renal failure",
+                             `suy thận giai đoạn cuối đã chạy thận nhiều năm, tăng huyết áp, suy tim`   = 
+                               "end stage renal failure undergone dialysis for many years, hypertension, heart failure",
+                             `Suy thận mạn`                                                             = "chronic renal failure",
+                             `Suy thận mạn chạy thận nhân tạo chu kỳ, tăng huyết áp, đái tháo đường type 2, suy tim` = 
+                               "chronic renal failure with cyclic hemodialysis, hypertension, type 2 diabetes, heart failure",
+                             `suy thận mạn giai đoạn 5, đái tháo đường type 2`                          = "stage 5 chronic renal failure, type 2 diabetes",
+                             `Suy thận mạn tính giai đoạn cuối đã chạy thận nhân tạo chu kỳ và đặt Stent, suy tim, tăng huyết áp.` = 
+                               "end stage chronic renal failure with cyclic hemodialysis and stents, heart failure, hypertension",
+                             `Suy thận mạn, chạy thận, tăng huyết áp, đái tháo đường, bệnh tim thiếu máu cục bộ` = 
+                               "chronic renal failure with hemodialysis, hypertension, diabetes, ischemic heart disease",
+                             `Suy thận mạn, chạy thận, tăng huyết áp, đái tháo đường, rung nhĩ, gout,`  = 
+                               "chronic renal failure with hemodialysis, hypertension, diabetes, atrial fibrillation, gout",
+                             `Suy thận mạn, đái tháo đường type 2`                                      = "chronic renal failure, type 2 diabetes",
+                             `Suy thận mạn, đái tháo đường type 2, lupus ban đỏ`                        = 
+                               "chronic kidney failure, type 2 diabetes, lupus erythematosus",
+                             `Suy thận mạn, suy tim, tăng huyết áp, nhiễm trùng huyết`                  = "chronic renal failure, heart failure, hypertension, sepsis",
+                             `Suy thận mạn, tăng huyết áp, suy tim`                                     = "chronic renal failure, hypertension, heart failure",
+                             `Suy thận mạn, tăng huyết áp. Đái tháo đường typ 2`                        = "chronic renal failure, hypertension, type 2 diabetes",
+                             `Suy thận mạn, ung thư thận di căn phổi, đái tháo đường type 2`            = 
+                               "chronic renal failure, kidney cancer lung metastasis, type 2 diabetes",
+                             `Suy thận mạn, viêm màng não.`                                             = "chronic renal failure, meningitis",
+                             `Suy tim`                                                                  = "heart failure",
+                             `Suy tim, nhồi máu cơ tim`                                                 = "heart failure, myocardial infarction",
+                             `Suy tim, suy thận mãn.`                                                   = "heart failure, chronic kidney failure",
+                             `Tai biến`                                                                 = "stroke",
+                             `Tan máu bẩm sinh/Viêm dạ dày`                                             = "congenital hemolysis, gastritis",
+                             `Tăng huyết áp`                                                            = "hypertension",
+                             `Tăng huyết áp và Đái tháo đường type 2 nhiều năm; Nhồi máu cơ tim đã đặt stent 2 lần; Xơ vữa mạch máu 2 chi dưới, cắt cụt bàn chân trái do tắc mạch` = 
+                               "hypertension, type 2 diabetes for many years, myocardial infarction stented 2 times, atherosclerosis of 2 lower limbs, left foot amputation due to embolism",
+                             `Tăng huyết áp, đái tháo đường`                                            = "hypertension, diabetes",
+                             `Tăng huyết áp, Đái tháo đường`                                            = "hypertension, diabetes",
+                             `Tăng huyết áp, đài tháo đường`                                            = "hypertension, diabetes",
+                             `Tăng huyết áp, đái tháo đương type 2, hẹp động mạch chi dưới`             = 
+                               "hypertension, type 2 diabetes, artery stenosis in lower limbs",
+                             `Tăng huyết áp, suy thận mạn giai đoạn 5, chạy thận 2 lần/ tuần`           = 
+                               "hypertension, stage 5 chronic renal failure, hemodialysis 2 times / week",
+                             `THA/Đau cột sống`                                                         = "hypertension, spinal pain",
+                             `THA/Nhiễm trùng tiết niệu`                                                = "hypertension, urinary tract infections",
+                             `Thoái hóa đa khớp nằm một chỗ 6 năm nay, phẫu thuật dạ dày`               = 
+                               "osteoarthritis cannot move for 6 years now, gastric surgery",
+                             `Thoát vị bẹn`                                                             = "inguinal hernia",
+                             `Thoát vị địa đệm`                                                         = "geodetic herniation",
+                             `Ung thư`                                                                  = "cancer",
+                             `Ung thư buồng trứng di căn ổ bụng, sỏi thận, nhiễm trùng đường tiết niệu đã cắt thận trái.` = 
+                               "ovarian cancer abdominal metastasis, kidney stones, urinary tract infection, the left kidney removed",
+                             `Ung thư vú`                                                               = "breast cancer",
+                             `Viêm dạ dày`                                                              = "gastritis",
+                             `Viêm mũi xoang`                                                           = "sinusitis",
+                             `Viêm phổi`                                                                = "pneumonia",
+                             `Viêm xoang mạn`                                                           = "chronic sinusitis"),
         sus_infec_country = recode(sus_infec_country,
                                    `Trung Quốc`       = "China",
                                    `Anh`              = "Britain",
@@ -1269,7 +1362,7 @@ positive_data_translate <- "Line_listing_COVID19_13.xlsx" %>% read_excel() %>%
                                    `Đà Nẵng`          = "Da Nang",
                                    `Quảng Nam`        = "Quang Nam",
                                    `Guinea Xích đạo`  = "Equatorial Guinea",
-                                   `Guinea Xích đạo`= "Equatorial Guinea",
+                                   `Guinea Xích đạo`= "Equatorial Guinea",
                                    `Quảng Ngãi`       = "Quang Ngai",
                                    `Đồng Nai`         = "Dong Nai",
                                    `Đăk Lăk`          = "Dak Lak",
@@ -1475,16 +1568,20 @@ positive_data_translate <- "Line_listing_COVID19_13.xlsx" %>% read_excel() %>%
 ## WRITE THE DATA
 ```{r}
 positive_data_translate %>%
-  write.csv2("../Translate positive data_13/linelisting.csv", quote = FALSE, row.names = FALSE)
+  write.csv2("../Translate positive data_13/linelisting_LT.csv", quote = FALSE, row.names = FALSE)
 
-saveRDS(positive_data_translate, "../Translate positive data_13/linelisting.rds")
+saveRDS(positive_data_translate, "../Translate positive data_13/linelisting_LT.rds")
 ```
 
 
 ```{r}
 #not recode
-province_report
-comorbidity
-quarantine_location
+province_report #not
+quarantine_location #not
 second_test_to_first_test # check value date
 ```
+
+
+
+
+
