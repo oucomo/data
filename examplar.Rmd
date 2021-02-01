@@ -1,0 +1,43 @@
+---
+title: "Examplar"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+library(lubridate)
+library(magrittr)
+library(stringr)
+library(dplyr)
+```
+
+```{r}
+first_positive <- function(x) {
+  first(which(x == "Dương tính"))
+}
+```
+
+```{r}
+"../raw data/Phân tích ca dương tính COVID-19-update 01 2021.xlsx" %>%
+  readxl::read_excel() %>% 
+  select(MCB, `Loại ca bệnh đích`, starts_with("KQXN"), starts_with("Ngày lấy mẫu ")) %>% 
+  rename(id       = MCB,
+         imported = `Loại ca bệnh đích`) %>% 
+  rename_with(~ str_replace(.x, "KQXN ", "result")) %>% 
+  rename_with(~ str_replace(.x, "Ngày lấy mẫu ", "sampling_date")) %>% 
+  select(c("id", "imported", paste0("result", 1:28), paste0("sampling_date", 1:28))) %>% 
+  mutate(imported  = imported == "Ổ dịch nước ngoài") %>% 
+  mutate_if(is.numeric, as_date, origin = ymd(18991230)) %>% 
+  mutate_if(~ "POSIXct" %in% class(.x), as_date) %>% 
+  rowwise() %>% 
+  mutate(first_positive_test = extract(c_across(sampling_date1:sampling_date28),
+                                       first_positive(c_across(result1:result28)))) %>% 
+  select(id, imported, first_positive_test) %>% 
+  write.csv("~/Desktop/line_listing.csv", row.names = FALSE, quote = FALSE)
+```
+
